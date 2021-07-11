@@ -1,14 +1,25 @@
 # What is wallabag?
 
 ![CI](https://github.com/wallabag/docker/workflows/CI/badge.svg)
-[![Docker Stars](https://img.shields.io/docker/stars/wallabag/wallabag.svg?maxAge=2592000)](https://hub.docker.com/r/wallabag/wallabag/)
-[![Docker Pulls](https://img.shields.io/docker/pulls/wallabag/wallabag.svg?maxAge=2592000)](https://hub.docker.com/r/wallabag/wallabag/)
+[![Docker Pulls](https://img.shields.io/docker/pulls/thedockerimages/wallabag.svg?maxAge=2592000)](https://hub.docker.com/r/thedockerimages/wallabag/)
 
 [wallabag](https://www.wallabag.org/) is a self hostable application for saving web pages. Unlike other services, wallabag is free (as in freedom) and open source.
 
 With this application you will not miss content anymore. Click, save, read it when you want. It saves the content you select so that you can read it when you have time.
 
-# How to use this image
+- [What is wallabag?](#what-is-wallabag)
+  - [How to use this image](#how-to-use-this-image)
+  - [Environment variables](#environment-variables)
+  - [SQLite](#sqlite)
+  - [MariaDB / MySQL](#mariadb--mysql)
+  - [PostgreSQL](#postgresql)
+  - [Redis](#redis)
+  - [Upgrading](#upgrading)
+  - [docker-compose](#docker-compose)
+  - [nginx](#nginx)
+  - [Import worker](#import-worker)
+
+## How to use this image
 
 Default login is `wallabag:wallabag`.
 
@@ -62,7 +73,7 @@ $ docker run -v /opt/wallabag/data:/var/www/wallabag/data -v /opt/wallabag/image
 
 For using MariaDB or MySQL you have to define some environment variables with the container. Example:
 
-```
+```bash
 $ docker run --name wallabag-db -e "MYSQL_ROOT_PASSWORD=my-secret-pw" -d mariadb
 $ docker run --name wallabag --link wallabag-db:wallabag-db -e "MYSQL_ROOT_PASSWORD=my-secret-pw" -e "SYMFONY__ENV__DATABASE_DRIVER=pdo_mysql" -e "SYMFONY__ENV__DATABASE_HOST=wallabag-db" -e "SYMFONY__ENV__DATABASE_PORT=3306" -e "SYMFONY__ENV__DATABASE_NAME=wallabag" -e "SYMFONY__ENV__DATABASE_USER=wallabag" -e "SYMFONY__ENV__DATABASE_PASSWORD=wallapass" -e "SYMFONY__ENV__DATABASE_CHARSET=utf8mb4" -e "SYMFONY__ENV__DOMAIN_NAME=http://localhost" -p 80:80 wallabag/wallabag
 ```
@@ -71,7 +82,7 @@ $ docker run --name wallabag --link wallabag-db:wallabag-db -e "MYSQL_ROOT_PASSW
 
 For using PostgreSQL you have to define some environment variables with the container. Example:
 
-```
+```bash
 $ docker run --name wallabag-db -e "POSTGRES_PASSWORD=my-secret-pw" -e "POSTGRES_USER=my-super-user" -d postgres:9.6
 $ docker run --name wallabag --link wallabag-db:wallabag-db -e "POSTGRES_PASSWORD=my-secret-pw" -e "POSTGRES_USER=my-super-user" -e "SYMFONY__ENV__DATABASE_DRIVER=pdo_pgsql" -e "SYMFONY__ENV__DATABASE_HOST=wallabag-db" -e "SYMFONY__ENV__DATABASE_PORT=5432" -e "SYMFONY__ENV__DATABASE_NAME=wallabag" -e "SYMFONY__ENV__DATABASE_USER=wallabag" -e "SYMFONY__ENV__DATABASE_PASSWORD=wallapass" -e "SYMFONY__ENV__DOMAIN_NAME=http://localhost" -p 80:80 wallabag/wallabag
 ```
@@ -109,11 +120,11 @@ $ docker exec -t NAME_OR_ID_OF_YOUR_WALLABAG_CONTAINER /var/www/wallabag/bin/con
 
 An example [docker-compose](https://docs.docker.com/compose/) file can be seen below:
 
-```
+```yaml
 version: '3'
 services:
   wallabag:
-    image: wallabag/wallabag
+    image: thedockerimages/wallabag
     environment:
       - MYSQL_ROOT_PASSWORD=wallaroot
       - SYMFONY__ENV__DATABASE_DRIVER=pdo_mysql
@@ -130,9 +141,9 @@ services:
       - SYMFONY__ENV__DOMAIN_NAME=https://your-wallabag-url-instance.com
       - SYMFONY__ENV__SERVER_NAME="Your wallabag instance"
     ports:
-      - "80"
+      - "35678:80"
     volumes:
-      - /opt/wallabag/images:/var/www/wallabag/web/assets/images
+      - wallabag_data:/var/www/wallabag/web/assets/images
     healthcheck:
       test: ["CMD", "wget" ,"--no-verbose", "--tries=1", "--spider", "http://localhost"]
       interval: 1m
@@ -145,7 +156,7 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=wallaroot
     volumes:
-      - /opt/wallabag/data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
       interval: 20s
@@ -156,6 +167,10 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 20s
       timeout: 3s
+
+volumes: 
+	mysql_data:
+	wallabag_data:
 ```
 
 Note that you must fill out the mail related variables according to your mail config.
